@@ -3,7 +3,7 @@
 	<name>AI-Emergency-Network</name>
 	<comment></comment>
 	<projects>
-		<project>inet4.5</project>
+		<project>inet</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

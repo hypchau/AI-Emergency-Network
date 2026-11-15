@@ -48,17 +48,31 @@ images/aien/                     icônes
 
 ---
 
-## Installation (Windows, IDE OMNeT++)
+## Installation avec opp_env (Windows via WSL, Linux, macOS)
 
-Prérequis : **OMNeT++ 6.3.0** et **INET 4.5.4**, ce dernier importé dans le workspace de l'IDE sous le nom `inet4.5` et compilé.
+Prérequis : un workspace opp_env contenant **OMNeT++ 6.3.0** et **INET 4.5.4**, par exemple obtenu avec `opp_env install inet-4.5.4`. Le workspace contient alors les dossiers `omnetpp-6.3.0/` et `inet-4.5.4/`.
 
-1. Clone ce dépôt **dans le dossier du workspace**, à côté de `inet4.5`.
-2. Dans l'IDE : *File → Import → General → Existing Projects into Workspace*, puis choisis le dossier du dépôt.
-   Le projet `AI-Emergency-Network` référence déjà `inet4.5`. Vérifie-le dans *Project → Properties → Project References*.
-3. Lance *Project → Build Project*. L'IDE génère `src/Makefile` à partir de `.oppbuildspec` et produit l'exécutable `src/aiensim`.
-4. Clic droit sur `simulations/omnetpp.ini`, puis *Run As → OMNeT++ Simulation*, et choisis une configuration.
+1. Dans le terminal WSL, clone ce dépôt **dans le workspace**, à côté de `inet-4.5.4/` :
+   ```
+   cd ~/mon_workspace                       # ton workspace opp_env
+   git clone -b simulation-v1 https://github.com/hypchau/AI-Emergency-Network.git
+   ```
+2. Entre dans l'environnement : `opp_env shell`. OMNeT++ et INET ne sont utilisables que dans ce shell.
+3. Au choix :
+   - **IDE** : tape `omnetpp`. L'IDE s'ouvre sur le workspace. Si le projet `AI-Emergency-Network` n'apparaît pas, fais *File → Import → General → Existing Projects into Workspace*. Vérifie ensuite que le projet `inet` est coché dans *Project → Properties → Project References*, puis lance *Build Project*.
+   - **Ligne de commande** :
+     ```
+     cd AI-Emergency-Network
+     make makefiles          # INET est trouvé via $INET_ROOT, défini par opp_env
+     make MODE=release
+     cd simulations
+     ./run -c QuickFlat      # ouvre Qtenv
+     ```
+4. Pour un premier test sans rien télécharger, prends **QuickFlat** : sol plat, pas de carte.
 
-Pour un premier test sans rien télécharger, prends **QuickFlat** : sol plat, pas de carte.
+### Installation classique (OMNeT++ pour Windows, sans opp_env)
+
+Importe le dossier dans le workspace où se trouve le projet INET (*File → Import → Existing Projects into Workspace*). Coche `inet` dans *Project References*, puis lance *Build Project*.
 
 ### Relief et carte réels (à faire une fois)
 
@@ -78,25 +92,18 @@ Les configurations **Rasuwa2D**, **Rasuwa3D**, **Failure2D** et **FleetSweep** e
 
 ### Activer la 3D (configuration Rasuwa3D)
 
-OMNeT++ doit être compilé avec osgEarth. Sous Windows, les bibliothèques sont fournies dans `tools/win32.x86_64/opt`, mais osgEarth est désactivé par défaut.
-
-1. Dans `configure.user` d'OMNeT++, mets `WITH_OSG=yes` et `WITH_OSGEARTH=yes`.
-2. Dans `mingwenv.cmd` : `./configure`, puis `make` (recompilation d'OMNeT++).
-3. Recompile INET avec *Clean*, puis *Build*. Ensuite, recompile ce projet.
-4. Lance **Rasuwa3D**, puis ouvre la vue 3D de Qtenv (bouton *3D Scene*).
+OMNeT++ doit être compilé avec OpenSceneGraph et osgEarth, ce qui n'est pas le cas par défaut. Avec opp_env, regarde les options proposées par `opp_env info omnetpp-6.3.0`. Avec une installation classique, mets `WITH_OSG=yes` et `WITH_OSGEARTH=yes` dans `configure.user`, puis relance `./configure` et `make`. Recompile ensuite INET, puis ce projet. Lance enfin **Rasuwa3D** et ouvre la vue 3D de Qtenv.
 
 La carte est chargée depuis Internet et mise en cache dans `simulations/osgearth_cache/`.
 
 > La vue 3D n'a pas pu être testée dans l'environnement où ce code a été écrit, faute d'osgEarth. Toute la logique de simulation (planification, vols, relève, radio, KPI) a été testée en 2D et en ligne de commande. En 3D, les icônes ne changent pas de couleur, car le visualiseur OSG d'INET ne les relit pas. L'état des drones s'affiche dans leur étiquette (batterie) et dans le bandeau du camion.
 
-### En ligne de commande (Linux, WSL, macOS)
+### Campagne de simulations
 
 ```
-make makefiles INET_PROJ=../inet4.5
-make MODE=release
 cd simulations
-./run -c QuickFlat                    # Qtenv
-./run -u Cmdenv -c FleetSweep         # campagne 1..20 drones x 3 graines
+./run -u Cmdenv -c FleetSweep         # 1..20 drones x 3 graines, sans interface
+python3 ../tools/analyse_results.py   # courbes dans plots/
 ```
 
 ---

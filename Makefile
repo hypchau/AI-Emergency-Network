@@ -1,10 +1,10 @@
 # Command-line build. The OMNeT++ IDE does the same from .oppbuildspec.
 #
-#   make makefiles            # once (INET next to this project: ../inet4.5)
-#   make makefiles INET_PROJ=/path/to/inet4.5
+#   make makefiles            # once; INET found via $INET_ROOT (set by opp_env / INET setenv)
+#   make makefiles INET_PROJ=/path/to/inet
 #   make                      # debug build;  make MODE=release  for speed
 #
-INET_PROJ ?= ../inet4.5
+INET_PROJ ?= $(if $(INET_ROOT),$(INET_ROOT),../inet-4.5.4)
 INET_ABS := $(abspath $(INET_PROJ))
 
 .PHONY: all clean cleanall makefiles checkmakefiles
