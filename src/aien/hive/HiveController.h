@@ -94,6 +94,10 @@ class HiveController : public cSimpleModule
 
     // canvas figures (2D view)
     cGroupFigure *planLayer = nullptr;
+    cGroupFigure *coverageLayer = nullptr;
+    std::vector<cOvalFigure *> droneCircles;   // live 4G cell of each deployed drone
+    std::vector<bool> droneConnected;          // airborne and linked to the hive (last tick)
+    const inet::CanvasProjection *canvasProjection = nullptr;
 
   protected:
     virtual int numInitStages() const override { return inet::NUM_INIT_STAGES; }

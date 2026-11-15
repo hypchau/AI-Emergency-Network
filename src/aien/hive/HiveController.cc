@@ -356,6 +356,21 @@ void HiveController::drawPlan()
     planLayer->setZIndex(-1);
     canvas->addFigure(planLayer);
     drawScale(canvas, projection);
+    canvasProjection = projection;
+    coverageLayer = new cGroupFigure("droneCoverage");
+    coverageLayer->setZIndex(-0.5);
+    canvas->addFigure(coverageLayer);
+    droneConnected.assign(drones.size(), false);
+    for (size_t i = 0; i < drones.size(); i++) {
+        auto oval = new cOvalFigure("droneCell");
+        oval->setFilled(true);
+        oval->setFillOpacity(0.12);
+        oval->setLineWidth(2);
+        oval->setZoomLineWidth(false);
+        oval->setVisible(false);
+        coverageLayer->addFigure(oval);
+        droneCircles.push_back(oval);
+    }
 
     auto circle = [&](const Coord& center, double radius, const cFigure::Color& color, const char *name) {
         auto c = projection->computeCanvasPoint(center);
@@ -374,7 +389,6 @@ void HiveController::drawPlan()
     };
     circle(motherPosition, motherRange, cFigure::Color(230, 120, 0), "motherRange");
     for (auto& p : posts) {
-        circle(p.position, accessRange, cFigure::Color(30, 110, 200), "postRange");
         auto c = projection->computeCanvasPoint(p.position);
         Coord parentPos = p.parent < 0 ? motherPosition : posts[p.parent].position;
         auto line = new cLineFigure("meshLink");
@@ -712,6 +726,10 @@ void HiveController::evaluateCoverage()
             }
     }
     int numConnected = std::count(connected.begin() + 1, connected.end(), true);
+    std::fill(droneConnected.begin(), droneConnected.end(), false);
+    for (size_t k = 1; k < nodes.size(); k++)
+        if (nodeDrone[k] >= 0 && (size_t)nodeDrone[k] < droneConnected.size())
+            droneConnected[nodeDrone[k]] = connected[k];
 
     int covered = 0;
     for (size_t u = 0; u < users.size(); u++) {
@@ -768,6 +786,31 @@ void HiveController::refreshDisplay() const
     }
     for (size_t u = 0; u < users.size(); u++)
         users[u]->getDisplayString().setTagArg("i", 0, userCovered[u] ? "aien/victim_ok" : "aien/victim_sos");
+
+    // live coverage circle around every deployed drone (not around the reserve on the truck)
+    for (size_t i = 0; i < droneCircles.size() && canvasProjection; i++) {
+        auto& d = drones[i];
+        auto oval = droneCircles[i];
+        bool deployed = (d.state == OUTBOUND || d.state == ON_STATION || d.state == RETURNING) && d.mobility->isAirborne();
+        oval->setVisible(deployed);
+        if (!deployed)
+            continue;
+        Coord pos = d.mobility->getCurrentPosition();
+        auto c = canvasProjection->computeCanvasPoint(pos);
+        auto e = canvasProjection->computeCanvasPoint(pos + Coord(accessRange, 0, 0));
+        double r = std::sqrt((e.x - c.x) * (e.x - c.x) + (e.y - c.y) * (e.y - c.y));
+        oval->setBounds(cFigure::Rectangle(c.x - r, c.y - r, 2 * r, 2 * r));
+        // green: on post and linked to the hive; blue: flying out; orange: going back;
+        // dashed grey: airborne but cut from the hive (it serves nobody)
+        cFigure::Color color = d.state == ON_STATION ? cFigure::Color(20, 160, 60)
+                             : d.state == OUTBOUND ? cFigure::Color(30, 110, 200) : cFigure::Color(240, 140, 20);
+        bool linkedToHive = i < droneConnected.size() && droneConnected[i];
+        if (!linkedToHive)
+            color = cFigure::Color(130, 130, 130);
+        oval->setLineColor(color);
+        oval->setFillColor(color);
+        oval->setLineStyle(linkedToHive ? cFigure::LINE_SOLID : cFigure::LINE_DASHED);
+    }
 
     int charged = 0;
     for (auto t : packReadyAt)

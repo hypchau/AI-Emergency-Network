@@ -15,7 +15,9 @@ Le scénario est réel : la **crue éclair de la Bhotekoshi** (district de Rasuw
 | Camion-ruche (Syabrubesi) | icône camion ; le bandeau affiche couverture, postes tenus, drones reliés, batteries chargées |
 | Drones relais | quadricoptères, couleur selon l'état : gris = prêt, bleu = aller, vert = sur poste, orange = retour, violet = échange de batterie, rouge = panne ; texte `ÉTAT Pn batterie%` |
 | Téléphones (victimes, secours) | rouge avec « ! » = sans réseau, vert = couvert |
-| Postes planifiés | losanges `P1, P2…`, disque pointillé bleu = cellule 4G de 2 km, pointillés = liens maillés |
+| Postes planifiés | losanges `P1, P2…` avec leur distance au camion ; pointillés = chaîne de liaison prévue |
+| Couverture des drones | cercle de 2 km qui suit chaque drone déployé (pas la réserve) : vert = sur poste, bleu = aller, orange = retour, gris pointillé = coupé du camion |
+| Repères | quadrillage de 1 km, échelle de 5 km, flèche du nord |
 | Antenne mère | disque pointillé orange (2,5 km) autour du camion |
 | Trafic SOS | flèches bleues des téléphones vers le camion, à travers les drones |
 
