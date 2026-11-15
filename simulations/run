@@ -1,0 +1,10 @@
+#!/bin/sh
+# Command-line launcher (Linux/macOS/WSL/MinGW shell). Examples:
+#   ./run -c QuickFlat                       # Qtenv if available
+#   ./run -u Cmdenv -c FleetSweep            # batch
+# INET location: INET_ROOT env variable (set by INET's setenv) or ../../inet4.5
+DIR=$(cd "$(dirname "$0")" && pwd)
+INET=${INET_ROOT:-$DIR/../../inet4.5}
+EXE=$DIR/../src/aiensim
+[ -x "$EXE" ] || EXE=$DIR/../src/aiensim_dbg
+cd "$DIR" && exec "$EXE" -n "$DIR/../src:$DIR:$INET/src" --image-path="$DIR/../images" "$@"

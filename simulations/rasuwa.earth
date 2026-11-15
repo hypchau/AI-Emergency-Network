@@ -1,0 +1,45 @@
+<!--
+  AI Emergency Network - 3D map of the Bhotekoshi valley (Rasuwa, Nepal)
+
+  Imagery : OpenStreetMap tiles (c) OpenStreetMap contributors, ODbL
+            (needs an Internet connection; tiles are cached in osgearth_cache/)
+  Relief  : terrain/rasuwa_dem.asc, the SAME elevation grid the simulation uses
+            for terrain following and line of sight (made by tools/fetch_terrain.py)
+
+  Written in the legacy "version 2" syntax, read by osgEarth 2.x and 3.x.
+-->
+<map name="Rasuwa - Bhotekoshi" type="geocentric" version="2">
+
+    <options>
+        <cache type="filesystem">
+            <path>osgearth_cache</path>
+        </cache>
+    </options>
+
+    <image name="openstreetmap" driver="xyz">
+        <url>https://tile.openstreetmap.org/{z}/{x}/{y}.png</url>
+        <profile>spherical-mercator</profile>
+        <attribution>(c) OpenStreetMap contributors</attribution>
+    </image>
+
+    <!-- Satellite imagery instead of the street map: uncomment, and check the
+         provider's terms of use before showing it publicly.
+    <image name="satellite" driver="xyz">
+        <url>https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}</url>
+        <profile>spherical-mercator</profile>
+    </image>
+    -->
+
+    <elevation name="rasuwa_dem" driver="gdal">
+        <url>terrain/rasuwa_dem.asc</url>
+    </elevation>
+
+    <external>
+        <viewpoints>
+            <viewpoint name="Vallee" lat="28.20" long="85.35" height="0" heading="-20" pitch="-30" range="22000"/>
+            <viewpoint name="Syabrubesi" lat="28.1625" long="85.342" height="0" heading="10" pitch="-25" range="6000"/>
+            <viewpoint name="Timure" lat="28.2537" long="85.3665" height="0" heading="-160" pitch="-25" range="6000"/>
+        </viewpoints>
+        <sky hours="9.0"/>
+    </external>
+</map>
