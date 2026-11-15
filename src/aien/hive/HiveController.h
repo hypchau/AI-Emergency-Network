@@ -7,6 +7,8 @@
 #include "inet/common/INETDefs.h"
 #include "inet/common/geometry/common/Coord.h"
 
+namespace inet { class CanvasProjection; }
+
 namespace aien {
 
 using namespace omnetpp;
@@ -104,6 +106,7 @@ class HiveController : public cSimpleModule
     void planPosts();
     void pruneUselessBridges();
     void drawPlan();
+    void drawScale(cCanvas *canvas, const inet::CanvasProjection *projection);
     void launchNextInitial();
     void tick();
     void updateDrone(int i);

@@ -355,6 +355,7 @@ void HiveController::drawPlan()
     planLayer = new cGroupFigure("hivePlan");
     planLayer->setZIndex(-1);
     canvas->addFigure(planLayer);
+    drawScale(canvas, projection);
 
     auto circle = [&](const Coord& center, double radius, const cFigure::Color& color, const char *name) {
         auto c = projection->computeCanvasPoint(center);
@@ -391,14 +392,112 @@ void HiveController::drawPlan()
         planLayer->addFigure(icon);
         auto label = new cLabelFigure("postLabel");
         char text[64];
-        snprintf(text, sizeof(text), "P%d%s  %d drone%s", p.id, p.bridge ? " relais" : "", p.dronesNeeded,
-                 p.dronesNeeded > 1 ? "s" : "");
+        snprintf(text, sizeof(text), "P%d%s  %.1f km  %d drone%s", p.id, p.bridge ? " relais" : "",
+                 horizontalDistance(p.position, motherPosition) / 1000, p.dronesNeeded, p.dronesNeeded > 1 ? "s" : "");
         label->setText(text);
         label->setPosition(c + cFigure::Point(0, 14));
         label->setAnchor(cFigure::ANCHOR_N);
         label->setColor(cFigure::Color(20, 60, 120));
         planLayer->addFigure(label);
     }
+}
+
+void HiveController::drawScale(cCanvas *canvas, const inet::CanvasProjection *projection)
+{
+    // scene extent (metres) = the area of the map; the network's bgb uses the same values
+    cModule *network = getSystemModule();
+    double width = network->hasPar("sceneWidth") ? network->par("sceneWidth").doubleValue() : 0;
+    double height = network->hasPar("sceneHeight") ? network->par("sceneHeight").doubleValue() : 0;
+    if (width <= 0 || height <= 0)
+        return;
+    auto layer = new cGroupFigure("scale");
+    layer->setZIndex(-2);
+    canvas->addFigure(layer);
+    auto pt = [&](double x, double y) { return projection->computeCanvasPoint(Coord(x, y, 0)); };
+    const cFigure::Color gridColor(150, 150, 150);
+    const cFigure::Color ink(40, 40, 40);
+
+    // 1 km grid, labelled every km along the top and left edges
+    for (int k = 0; k * 1000.0 <= width; k++) {
+        auto line = new cLineFigure("gridX");
+        line->setStart(pt(k * 1000.0, 0));
+        line->setEnd(pt(k * 1000.0, height));
+        line->setLineColor(gridColor);
+        line->setLineOpacity(k % 5 == 0 ? 0.7 : 0.35);
+        line->setLineWidth(1);
+        line->setZoomLineWidth(false);
+        layer->addFigure(line);
+        auto label = new cLabelFigure("gridLabelX");
+        label->setText((std::to_string(k) + " km").c_str());
+        label->setPosition(pt(k * 1000.0, 0) + cFigure::Point(3, 3));
+        label->setAnchor(cFigure::ANCHOR_NW);
+        label->setColor(ink);
+        layer->addFigure(label);
+    }
+    for (int k = 0; k * 1000.0 <= height; k++) {
+        auto line = new cLineFigure("gridY");
+        line->setStart(pt(0, k * 1000.0));
+        line->setEnd(pt(width, k * 1000.0));
+        line->setLineColor(gridColor);
+        line->setLineOpacity(k % 5 == 0 ? 0.7 : 0.35);
+        line->setLineWidth(1);
+        line->setZoomLineWidth(false);
+        layer->addFigure(line);
+        if (k > 0) {
+            auto label = new cLabelFigure("gridLabelY");
+            label->setText((std::to_string(k) + " km").c_str());
+            label->setPosition(pt(0, k * 1000.0) + cFigure::Point(3, 3));
+            label->setAnchor(cFigure::ANCHOR_NW);
+            label->setColor(ink);
+            layer->addFigure(label);
+        }
+    }
+
+    // 5 km scale bar (alternating black/white kilometres) in the bottom-left corner
+    double x0 = 500, y0 = height - 800, barHeight = 120;
+    for (int k = 0; k < 5; k++) {
+        auto a = pt(x0 + k * 1000.0, y0 - barHeight);
+        auto b = pt(x0 + (k + 1) * 1000.0, y0);
+        auto seg = new cRectangleFigure("scaleSegment");
+        seg->setBounds(cFigure::Rectangle(a.x, a.y, b.x - a.x, b.y - a.y));
+        seg->setFilled(true);
+        seg->setFillColor(k % 2 == 0 ? ink : cFigure::WHITE);
+        seg->setLineColor(ink);
+        seg->setZoomLineWidth(false);
+        layer->addFigure(seg);
+    }
+    for (int k = 0; k <= 5; k++) {
+        auto label = new cLabelFigure("scaleLabel");
+        label->setText(k == 5 ? "5 km" : std::to_string(k).c_str());
+        label->setPosition(pt(x0 + k * 1000.0, y0 + 60));
+        label->setAnchor(cFigure::ANCHOR_N);
+        label->setColor(ink);
+        label->setFont(cFigure::Font("", 11, cFigure::FONT_BOLD));
+        layer->addFigure(label);
+    }
+    auto title = new cLabelFigure("scaleTitle");
+    title->setText("Echelle (carreaux de 1 km)");
+    title->setPosition(pt(x0, y0 - barHeight - 60));
+    title->setAnchor(cFigure::ANCHOR_SW);
+    title->setColor(ink);
+    title->setFont(cFigure::Font("", 11, cFigure::FONT_BOLD));
+    layer->addFigure(title);
+
+    // north arrow in the top-right corner
+    auto tip = pt(width - 700, 400), left = pt(width - 950, 1300), right = pt(width - 450, 1300);
+    auto arrow = new cPolygonFigure("north");
+    arrow->setPoints({tip, left, pt(width - 700, 1050), right});
+    arrow->setFilled(true);
+    arrow->setFillColor(ink);
+    arrow->setLineColor(ink);
+    layer->addFigure(arrow);
+    auto n = new cLabelFigure("northLabel");
+    n->setText("N");
+    n->setPosition(pt(width - 700, 1400));
+    n->setAnchor(cFigure::ANCHOR_N);
+    n->setFont(cFigure::Font("", 14, cFigure::FONT_BOLD));
+    n->setColor(ink);
+    layer->addFigure(n);
 }
 
 void HiveController::handleMessage(cMessage *msg)
