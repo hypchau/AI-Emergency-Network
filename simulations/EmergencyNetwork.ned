@@ -53,12 +53,10 @@ network EmergencyNetwork
         truck: HiveTruck {
             mobility.latitude = parent.hiveLatitude;
             mobility.longitude = parent.hiveLongitude;
-            @display("is=vl");
         }
         drone[numDrones]: ReliefDrone {
             mobility.homeLatitude = parent.hiveLatitude;
             mobility.homeLongitude = parent.hiveLongitude;
-            @display("is=l");
         }
         user[numUsers]: Victim {
             @display("is=n");

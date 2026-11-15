@@ -399,13 +399,6 @@ void HiveController::drawPlan()
         label->setColor(cFigure::Color(20, 60, 120));
         planLayer->addFigure(label);
     }
-    auto status = new cTextFigure("hiveStatus");
-    status->setText("");
-    status->setPosition(cFigure::Point(20, 20));
-    status->setAnchor(cFigure::ANCHOR_NW);
-    status->setFont(cFigure::Font("", 16, cFigure::FONT_BOLD));
-    status->setColor(cFigure::Color(20, 20, 20));
-    planLayer->addFigure(status);
 }
 
 void HiveController::handleMessage(cMessage *msg)
@@ -670,7 +663,8 @@ void HiveController::refreshDisplay() const
     for (size_t i = 0; i < drones.size(); i++) {
         auto& ds = drones[i].node->getDisplayString();
         ds.setTagArg("i", 0, icons[drones[i].state]);
-        ds.setTagArg("t", 0, droneLabel(i).c_str());
+        // parked drones stay silent, otherwise their labels pile up on the truck
+        ds.setTagArg("t", 0, drones[i].state == READY ? "" : droneLabel(i).c_str());
         ds.setTagArg("t", 1, "t");
     }
     for (size_t u = 0; u < users.size(); u++)
@@ -689,9 +683,6 @@ void HiveController::refreshDisplay() const
              packReadyAt.size(), numSwaps, numFailures);
     truck->getDisplayString().setTagArg("t", 0, text);
     truck->getDisplayString().setTagArg("t", 1, "t");
-    if (planLayer)
-        if (auto status = dynamic_cast<cTextFigure *>(planLayer->getFigure("hiveStatus")))
-            status->setText(text);
     getDisplayString().setTagArg("t", 0, str().c_str()); // shown above the truck by the info visualizer (2D and 3D)
 }
 
