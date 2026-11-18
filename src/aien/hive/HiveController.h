@@ -40,7 +40,8 @@ class HiveController : public cSimpleModule
         bool bridge = false;     // relay only (no phone of its own)
         std::vector<int> users;  // phones it covers (plan)
         int active = -1;         // drone on post
-        int inbound = -1;        // drone flying to the post
+        int inbound = 0;         // drones flying to the post (several when the trip is longer than a shift)
+        simtime_t nextLaunchAt = -1; // relief schedule: next take-off for this post
     };
 
     struct Drone {

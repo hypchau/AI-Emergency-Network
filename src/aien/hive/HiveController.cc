@@ -533,7 +533,7 @@ void HiveController::launchNextInitial()
     if (nextInitialLaunch >= posts.size())
         return;
     auto& p = posts[nextInitialLaunch];
-    if (p.active == -1 && p.inbound == -1 && !launch(nextInitialLaunch)) {
+    if (p.active == -1 && p.inbound == 0 && !launch(nextInitialLaunch)) {
         // no drone ready (tiny fleet): retry later
         scheduleAt(simTime() + launchInterval, launchTimer);
         return;
@@ -563,7 +563,11 @@ bool HiveController::launch(int postIndex)
     d.state = OUTBOUND;
     d.post = postIndex;
     d.sorties++;
-    p.inbound = i;
+    p.inbound++;
+    // relief schedule: the next drone takes off one shift later, so that it
+    // arrives handoverMargin before this one has to leave, even when the trip
+    // is longer than the shift (several drones then fly in a pipeline)
+    p.nextLaunchAt = simTime() + p.stationTime;
     numLaunches++;
     EV_INFO << d.node->getFullName() << " takes off for P" << p.id << " (battery "
             << 100 * d.battery->getResidualRatio() << " %)" << endl;
@@ -610,7 +614,7 @@ void HiveController::updateDrone(int i)
             if (phase == DroneMobility::HOVER) {
                 auto& p = posts[d.post];
                 d.state = ON_STATION;
-                p.inbound = -1;
+                p.inbound = std::max(0, p.inbound - 1);
                 if (p.active >= 0 && p.active != i) {
                     auto& old = drones[p.active];
                     old.mobility->returnHome();
@@ -635,8 +639,6 @@ void HiveController::updateDrone(int i)
                 numGaps++;
                 EV_WARN << d.node->getFullName() << " must leave P" << p.id << " before being relieved: coverage gap" << endl;
             }
-            else if (p.inbound == -1 && timeLeft <= p.outboundTime + handoverMargin)
-                launch(d.post);
             break;
         }
         case RETURNING:
@@ -677,7 +679,7 @@ void HiveController::failDrone(int i, const char *reason)
     if (d.post >= 0) {
         auto& p = posts[d.post];
         if (p.active == i) p.active = -1;
-        if (p.inbound == i) p.inbound = -1;
+        if (d.state == OUTBOUND) p.inbound = std::max(0, p.inbound - 1);
     }
     d.state = FAILED;
     numFailures++;
@@ -689,10 +691,13 @@ void HiveController::tick()
 {
     for (size_t i = 0; i < drones.size(); i++)
         updateDrone(i);
-    // refill posts that are empty (after a failure or a gap), once the initial wave has been sent
-    for (size_t k = 0; k < posts.size() && k < nextInitialLaunch; k++)
-        if (posts[k].active == -1 && posts[k].inbound == -1)
-            launch(k);
+    // posts already opened: scheduled reliefs, and immediate refill of an empty post (failure, gap)
+    for (size_t k = 0; k < posts.size() && k < nextInitialLaunch; k++) {
+        auto& p = posts[k];
+        bool empty = p.active == -1 && p.inbound == 0;
+        if (empty || (p.nextLaunchAt >= SIMTIME_ZERO && simTime() >= p.nextLaunchAt))
+            launch(k); // no drone ready: retried at the next tick
+    }
     evaluateCoverage();
 }
 
